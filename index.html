@@ -48,61 +48,56 @@ a:hover { text-decoration: underline; }
   <h1>myCDN</h1>
   <div id="file-tree"></div>
 </div>
-
 <script>
-async function loadFiles() {
-  const response = await fetch('files.json');
-  const data = await response.json();
-  const container = document.getElementById('file-tree');
-  container.appendChild(createTree(data, true));
+const repoOwner = "YOUR_GITHUB_USERNAME";
+const repoName = "YOUR_REPO_NAME";
+const branch = "main"; // or "master"
+
+async function fetchFiles(path = "") {
+  const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}?ref=${branch}`;
+  const response = await fetch(url);
+  const items = await response.json();
+  return items;
 }
 
-// Create the folder/file tree
-function createTree(node, isRoot = false) {
-  if (!node) return;
+async function buildTree(path = "", container = null, isRoot = false) {
+  const items = await fetchFiles(path);
   const ul = document.createElement('ul');
 
-  if (node.children) {
-    // Sort alphabetically
-    node.children.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  // Sort alphabetically
+  items.sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}));
 
-    node.children.forEach(child => {
-      // Skip showing actual files in root except index.html, files.json, README.md
-      if (isRoot && child.type === "file" && !["index.html","files.json","README.md"].includes(child.name)) return;
+  items.forEach(item => {
+    // Hide root unwanted files
+    if (isRoot && ["index.html", "files.json", "README.md"].includes(item.name)) return;
 
-      const li = document.createElement('li');
-
-      if (child.type === "folder") {
-        li.innerHTML = `<i class="fa-solid fa-folder"></i>${child.name}`;
-        li.appendChild(createTree(child));
-      } else if (child.type === "file") {
-        const link = document.createElement('a');
-        link.href = child.url;
-        link.target = "_blank";
-
-        // Use Font Awesome icon based on file type
-        const ext = child.name.split('.').pop().toLowerCase();
-        let iconClass = "fa-file";
-        if (ext === "pdf") iconClass = "fa-file-pdf";
-        else if (["jpg","jpeg","png","gif","svg"].includes(ext)) iconClass = "fa-file-image";
-        else if (["mp3","wav","ogg"].includes(ext)) iconClass = "fa-file-audio";
-        else if (["mp4","webm","mov"].includes(ext)) iconClass = "fa-file-video";
-        else if (["zip","rar","7z"].includes(ext)) iconClass = "fa-file-zipper";
-        else if (["html","htm"].includes(ext)) iconClass = "fa-file-code";
-        else if (["js","css","py","json"].includes(ext)) iconClass = "fa-file-code";
-
-        li.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
-        li.appendChild(link);
-        link.textContent = child.name;
-      }
-
+    const li = document.createElement('li');
+    if (item.type === "dir") {
+      li.innerHTML = `<i class="fa-solid fa-folder"></i> ${item.name}`;
       ul.appendChild(li);
-    });
-  }
-  return ul;
+      buildTree(item.path, li);
+    } else if (item.type === "file") {
+      const ext = item.name.split('.').pop().toLowerCase();
+      let iconClass = "fa-file";
+      if (ext === "pdf") iconClass = "fa-file-pdf";
+      else if (["jpg","jpeg","png","gif","svg"].includes(ext)) iconClass = "fa-file-image";
+      else if (["mp3","wav"].includes(ext)) iconClass = "fa-file-audio";
+      else if (["mp4","webm"].includes(ext)) iconClass = "fa-file-video";
+      else if (["zip","rar","7z"].includes(ext)) iconClass = "fa-file-zipper";
+      else if (["html","htm","js","css","py","json"].includes(ext)) iconClass = "fa-file-code";
+
+      li.innerHTML = `<i class="fa-solid ${iconClass}"></i> <a href="${item.download_url}" target="_blank">${item.name}</a>`;
+      ul.appendChild(li);
+    }
+  });
+
+  if (container) container.appendChild(ul);
+  else document.getElementById('file-tree').appendChild(ul);
 }
 
-loadFiles();
+// Run
+buildTree("", null, true);
 </script>
+
 </body>
 </html>
