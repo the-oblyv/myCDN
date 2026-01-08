@@ -1,0 +1,21 @@
+{
+  "name": "root",
+  "type": "folder",
+  "children": [
+    {
+      "name": "Documents",
+      "type": "folder",
+      "children": [
+        { "name": "Resume.pdf", "type": "file", "url": "https://yourcdn.github.io/files/Resume.pdf" },
+        { "name": "Project.docx", "type": "file", "url": "https://yourcdn.github.io/files/Project.docx" }
+      ]
+    },
+    {
+      "name": "Images",
+      "type": "folder",
+      "children": [
+        { "name": "Photo.png", "type": "file", "url": "https://yourcdn.github.io/files/Photo.png" }
+      ]
+    }
+  ]
+}
