@@ -51,7 +51,7 @@ a:hover { text-decoration: underline; }
 <script>
 const repoOwner = "the-oblyv";
 const repoName = "myCDN";
-const branch = "main"; // or "master"
+const branch = "main";
 
 async function fetchFiles(path = "") {
   const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}?ref=${branch}`;
@@ -67,15 +67,39 @@ async function buildTree(path = "", container = null, isRoot = false) {
   // Sort alphabetically
   items.sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}));
 
-  items.forEach(item => {
+  for (const item of items) {
     // Hide root unwanted files
-    if (isRoot && ["index.html", "files.json", "README.md"].includes(item.name)) return;
+    if (isRoot && ["index.html", "files.json", "README.md"].includes(item.name)) continue;
 
     const li = document.createElement('li');
+
     if (item.type === "dir") {
-      li.innerHTML = `<i class="fa-solid fa-folder"></i> ${item.name}`;
+      // Folder element
+      const folderSpan = document.createElement('span');
+      folderSpan.innerHTML = `<i class="fa-solid fa-folder"></i> ${item.name}`;
+      folderSpan.style.cursor = "pointer";
+
+      // Container for children, hidden by default
+      const childContainer = document.createElement('ul');
+      childContainer.style.display = "none";
+      childContainer.style.paddingLeft = "20px";
+
+      folderSpan.addEventListener('click', async () => {
+        if (childContainer.style.display === "none") {
+          // Load folder contents only once
+          if (childContainer.childElementCount === 0) {
+            await buildTree(item.path, childContainer);
+          }
+          childContainer.style.display = "block";
+        } else {
+          childContainer.style.display = "none";
+        }
+      });
+
+      li.appendChild(folderSpan);
+      li.appendChild(childContainer);
       ul.appendChild(li);
-      buildTree(item.path, li);
+
     } else if (item.type === "file") {
       const ext = item.name.split('.').pop().toLowerCase();
       let iconClass = "fa-file";
@@ -89,15 +113,15 @@ async function buildTree(path = "", container = null, isRoot = false) {
       li.innerHTML = `<i class="fa-solid ${iconClass}"></i> <a href="${item.download_url}" target="_blank">${item.name}</a>`;
       ul.appendChild(li);
     }
-  });
+  }
 
   if (container) container.appendChild(ul);
   else document.getElementById('file-tree').appendChild(ul);
 }
 
-// Run
+// Initialize root
 buildTree("", null, true);
 </script>
-
+  
 </body>
 </html>
