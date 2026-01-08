@@ -22,16 +22,16 @@ body {
 }
 ul {
   list-style: none;
-  padding-left: 20px;
+  padding-left: 0;
 }
 li {
-  padding: 5px 0;
+  padding: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
 }
 li i {
-  margin-right: 8px;
+  margin-right: 10px;
 }
 li:hover {
   color: #7c3aed;
@@ -41,6 +41,16 @@ a {
   text-decoration: none;
 }
 a:hover { text-decoration: underline; }
+button {
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover { background: #9a5dfb; }
 </style>
 </head>
 <body>
@@ -48,80 +58,76 @@ a:hover { text-decoration: underline; }
   <h1>myCDN</h1>
   <div id="file-tree"></div>
 </div>
+
 <script>
 const repoOwner = "the-oblyv";
 const repoName = "myCDN";
 const branch = "main";
 
+// Fetch files/folders from GitHub
 async function fetchFiles(path = "") {
   const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}?ref=${branch}`;
-  const response = await fetch(url);
-  const items = await response.json();
-  return items;
+  const res = await fetch(url);
+  return await res.json();
 }
 
-async function buildTree(path = "", container = null, isRoot = false) {
-  const items = await fetchFiles(path);
+async function showFolders() {
+  const container = document.getElementById('file-tree');
+  container.innerHTML = ''; // Clear previous
+  const items = await fetchFiles();
+  items.sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
   const ul = document.createElement('ul');
 
-  // Sort alphabetically
-  items.sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}));
-
-  for (const item of items) {
-    // Hide root unwanted files
-    if (isRoot && ["index.html", "files.json", "README.md"].includes(item.name)) continue;
-
-    const li = document.createElement('li');
-
-    if (item.type === "dir") {
-      // Folder element
-      const folderSpan = document.createElement('span');
-      folderSpan.innerHTML = `<i class="fa-solid fa-folder"></i> ${item.name}`;
-      folderSpan.style.cursor = "pointer";
-
-      // Container for children, hidden by default
-      const childContainer = document.createElement('ul');
-      childContainer.style.display = "none";
-      childContainer.style.paddingLeft = "20px";
-
-      folderSpan.addEventListener('click', async () => {
-        if (childContainer.style.display === "none") {
-          // Load folder contents only once
-          if (childContainer.childElementCount === 0) {
-            await buildTree(item.path, childContainer);
-          }
-          childContainer.style.display = "block";
-        } else {
-          childContainer.style.display = "none";
-        }
-      });
-
-      li.appendChild(folderSpan);
-      li.appendChild(childContainer);
+  items.forEach(item => {
+    if(item.type === 'dir') {
+      const li = document.createElement('li');
+      li.innerHTML = `<i class="fa-solid fa-folder"></i> ${item.name}`;
+      li.addEventListener('click', ()=>showFiles(item.name));
       ul.appendChild(li);
+    }
+  });
 
-    } else if (item.type === "file") {
+  container.appendChild(ul);
+}
+
+// Show files inside a folder with a back button
+async function showFiles(folderName) {
+  const container = document.getElementById('file-tree');
+  container.innerHTML = ''; // Clear previous
+
+  // Back button
+  const backBtn = document.createElement('button');
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', showFolders);
+  container.appendChild(backBtn);
+
+  const items = await fetchFiles(folderName);
+  items.sort((a,b)=>a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+
+  const ul = document.createElement('ul');
+  items.forEach(item=>{
+    if(item.type === 'file') {
       const ext = item.name.split('.').pop().toLowerCase();
-      let iconClass = "fa-file";
-      if (ext === "pdf") iconClass = "fa-file-pdf";
-      else if (["jpg","jpeg","png","gif","svg"].includes(ext)) iconClass = "fa-file-image";
-      else if (["mp3","wav"].includes(ext)) iconClass = "fa-file-audio";
-      else if (["mp4","webm"].includes(ext)) iconClass = "fa-file-video";
-      else if (["zip","rar","7z"].includes(ext)) iconClass = "fa-file-zipper";
-      else if (["html","htm","js","css","py","json"].includes(ext)) iconClass = "fa-file-code";
+      let iconClass = 'fa-file';
+      if(ext==='pdf') iconClass='fa-file-pdf';
+      else if(['jpg','jpeg','png','gif','svg'].includes(ext)) iconClass='fa-file-image';
+      else if(['mp3','wav'].includes(ext)) iconClass='fa-file-audio';
+      else if(['mp4','webm'].includes(ext)) iconClass='fa-file-video';
+      else if(['zip','rar','7z'].includes(ext)) iconClass='fa-file-zipper';
+      else if(['html','htm','js','css','py','json'].includes(ext)) iconClass='fa-file-code';
 
+      const li = document.createElement('li');
       li.innerHTML = `<i class="fa-solid ${iconClass}"></i> <a href="${item.download_url}" target="_blank">${item.name}</a>`;
       ul.appendChild(li);
     }
-  }
+  });
 
-  if (container) container.appendChild(ul);
-  else document.getElementById('file-tree').appendChild(ul);
+  container.appendChild(ul);
 }
 
-// Initialize root
-buildTree("", null, true);
+// Initial load
+showFolders();
 </script>
-  
 </body>
 </html>
